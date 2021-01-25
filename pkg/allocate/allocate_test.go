@@ -86,7 +86,10 @@ var _ = Describe("Allocation operations", func() {
 
 	})
 
-	It("creates an IPv6 range when the first hextets's zeroes have been shortened", func() {
+	It("creates an IPv6 range when the first hextets has leading zeroes", func() {
+
+		// !bang
+		fmt.Println("--------------------------------------------------------------------------- fd:db8:abcd:0012::0/96 !bang")
 
 		ip, ipnet, err := net.ParseCIDR("fd:db8:abcd:0012::0/96")
 		ip, _ = AddressRange(ipnet)

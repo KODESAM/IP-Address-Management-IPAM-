@@ -224,8 +224,21 @@ func isIntIPv4(checkipint *big.Int) bool {
 // BigIntToIP converts a big.Int to a net.IP
 func BigIntToIP(inipint big.Int) net.IP {
 	var outip net.IP
+
+	// Is this an IPv6 that's using a placeholder byte?
+	// Lets clean it out if it is.
+	newipint := big.NewInt(0)
+	maxval := big.NewInt(0)
+	maxval.SetBytes([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	if inipint.Cmp(maxval) >= 0 {
+		newipint.Sub(&inipint, maxval)
+		inipint = *newipint
+	}
+
 	outip = net.IP(make([]byte, net.IPv6len))
 	intbytes := inipint.Bytes()
+	// can this be changed? https://stackoverflow.com/questions/22751035/golang-distinguish-ipv4-ipv6/48519490
+	// possibly: ip.To4() != nil
 	if len(intbytes) > net.IPv4len+2 {
 		// This is an IPv6 address.
 		for i := 0; i < len(intbytes); i++ {
@@ -259,15 +272,37 @@ func IPToBigInt(IPv6Addr net.IP) *big.Int {
 	// !bang
 	// I need to figure out the byte size?
 	logging.Debugf("!bang binary: %b", IPv6Int)
+	logging.Debugf("!bang hex: %x", IPv6Int)
+	// logging.Debugf("!bang hex addy: %x", IPv6Addr)
 
-	if len(IPv6Int.Bytes()) > net.IPv4len+2 {
-		logging.Debugf("!bang what's the bytesize in IPToBigInt: %v", len(IPv6Int.Bytes()))
-		for i := net.IPv6len - len(IPv6Int.Bytes()); i > 0; i-- {
-			logging.Debugf("!bang HAPPENS ONCE!?")
-			// IPv6Int.Lsh(IPv6Int, uint(8))
-			// logging.Debugf("!bang after : %b", IPv6Int)
-		}
+	// Overload the int with an extra placeholder byte if it's left-padded with zeroes.
+	if len(IPv6Int.Bytes()) > net.IPv4len+2 && len(IPv6Int.Bytes()) < net.IPv6len {
+		// This appears to be the problem scenario.
+		logging.Debugf("!bang PROBLEM SCENARIO!!!!!!!!!!!!")
+		placeholder := []byte{1}
+		ipv6bytes := []byte(IPv6Addr)
+		newbytearray := append(placeholder, ipv6bytes...)
+		logging.Debugf("!bang NEW HEX: %v", newbytearray)
+		IPv6Int.SetBytes(newbytearray)
+
+		// What's the biggest thing here?
+		checker := big.NewInt(0)
+		checker.SetBytes([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+		logging.Debugf("!bang checker hex: %x", checker)
+		logging.Debugf("!bang checker int: %v", checker)
+
 	}
+
+	// if len(IPv6Int.Bytes()) > net.IPv4len+2 {
+	// 	logging.Debugf("!bang what's the bytesize in IPToBigInt: %v", len(IPv6Int.Bytes()))
+	// 	for i := net.IPv6len - len(IPv6Int.Bytes()); i > 0; i-- {
+	// 		logging.Debugf("!bang HAPPENS ONCE!?")
+
+	// 		// IPv6Int.Rsh(IPv6Int, uint(8))
+	// 		// IPv6Int.Rsh(IPv6Int, uint(8))
+	// 		// logging.Debugf("!bang after : %b", IPv6Int)
+	// 	}
+	// }
 
 	return IPv6Int
 }
